@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Role } from "@prisma/client";
-import { signOutAction } from "@/app/actions/signout";
 import { BrandLogo } from "./brand-logo";
+import { SignOutButton } from "./sign-out-button";
 
 const ROLE_LABELS: Record<Role, string> = {
   OWNER_ADMIN: "Owner / Administrator",
@@ -38,11 +38,11 @@ interface DashboardShellProps {
 
 export function DashboardSkeleton() {
   return (
-    <div className="min-h-screen w-full overflow-x-hidden bg-emerald-50/40 flex flex-col">
-      <header className="border-b border-emerald-100 bg-white/95">
+    <div className="min-h-screen w-full overflow-x-hidden bg-slate-50 flex flex-col">
+      <header className="border-b border-slate-200/80 bg-white/95">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
           <BrandLogo href="/" />
-          <div className="h-11 w-28 animate-pulse rounded-xl bg-emerald-100" />
+          <div className="h-11 w-28 animate-pulse rounded-xl bg-slate-200" />
         </div>
       </header>
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
@@ -51,7 +51,7 @@ export function DashboardSkeleton() {
           {Array.from({ length: 4 }).map((_, index) => (
             <div
               key={index}
-              className="h-28 animate-pulse rounded-2xl border border-emerald-100 bg-white"
+              className="h-28 animate-pulse rounded-2xl border border-slate-200/80 bg-white"
             />
           ))}
         </div>
@@ -71,8 +71,8 @@ export function DashboardShell({
     user.assignedGreenhouses.length > 0 ? user.assignedGreenhouses : [];
 
   return (
-    <div className="min-h-screen w-full overflow-x-hidden bg-emerald-50/40 flex flex-col">
-      <header className="sticky top-0 z-20 border-b border-emerald-100 bg-white/95 backdrop-blur-sm">
+    <div className="min-h-screen w-full overflow-x-hidden bg-slate-50 flex flex-col">
+      <header className="sticky top-0 z-20 border-b border-slate-200/80 bg-white/95 backdrop-blur-sm">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
           <BrandLogo href="/" />
 
@@ -81,28 +81,7 @@ export function DashboardShell({
               {user.userCode}
             </span>
 
-            <form action={signOutAction}>
-              <button
-                type="submit"
-                className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-xs transition-colors hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 cursor-pointer"
-              >
-                <svg
-                  className="h-4 w-4"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                  <polyline points="16 17 21 12 16 7" />
-                  <line x1="21" y1="12" x2="9" y2="12" />
-                </svg>
-                <span>Sign Out</span>
-              </button>
-            </form>
+            <SignOutButton />
           </div>
         </div>
 

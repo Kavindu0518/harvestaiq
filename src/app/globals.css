@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f6fbf8;
+  --background: #f8fafc;
   --foreground: #0f172a;
 }
 
@@ -18,4 +18,17 @@ body {
   overflow-x: hidden;
   background-color: var(--background);
   color: var(--foreground);
+}
+
+/* Blend browser-autofilled inputs cleanly with crisp white surfaces */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-text-fill-color: #0f172a;
+  -webkit-box-shadow: 0 0 0 1000px #ffffff inset;
+  box-shadow: 0 0 0 1000px #ffffff inset;
+  caret-color: #0f172a;
+  transition: background-color 9999s ease-out 0s;
 }

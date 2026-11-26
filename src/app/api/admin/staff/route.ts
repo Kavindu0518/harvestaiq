@@ -1,20 +1,22 @@
 import { NextResponse } from "next/server";
+import { unstable_rethrow } from "next/navigation";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { AccountStatus, AuthEventType, Role } from "@prisma/client";
 import { auth } from "@/auth";
+import { listAllDirectoryUsers } from "@/lib/admin-users";
 import { prisma } from "@/lib/prisma";
 import { extractRequestMeta, recordAuthAuditLog } from "@/lib/audit";
-import { sendPasswordResetEmail } from "@/lib/mail";
+import { sendStaffWelcomeEmail } from "@/lib/mail";
 import {
   generateRawToken,
   hashToken,
   normalizeSriLankanPhone,
 } from "@/lib/tokens";
 import { getNextStaffCode } from "@/lib/user-code";
-import { emailSchema } from "@/lib/validation";
+import { emailSchema, strongPasswordSchema } from "@/lib/validation";
 
-const STAFF_SETUP_TTL_MS = 24 * 60 * 60 * 1000;
+const STAFF_VERIFICATION_TTL_MS = 24 * 60 * 60 * 1000;
 
 const createStaffSchema = z.object({
   name: z
@@ -25,8 +27,32 @@ const createStaffSchema = z.object({
   email: emailSchema,
   phone: z.string().trim().optional().nullable(),
   role: z.enum([Role.FARM_MANAGER, Role.AGRONOMIST, Role.GREENHOUSE_TECH]),
+  password: strongPasswordSchema.optional(),
   assignedGreenhouses: z.array(z.string().trim().min(1)).default([]),
 });
+
+export async function GET() {
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    }
+
+    if (session.user.role !== Role.OWNER_ADMIN) {
+      return NextResponse.json({ error: "Forbidden." }, { status: 403 });
+    }
+
+    const users = await listAllDirectoryUsers();
+    return NextResponse.json({ users }, { status: 200 });
+  } catch (error) {
+    unstable_rethrow(error);
+    console.error("List users error:", error);
+    return NextResponse.json(
+      { error: "Unable to load user directory." },
+      { status: 500 }
+    );
+  }
+}
 
 export async function POST(request: Request) {
   try {
@@ -61,7 +87,8 @@ export async function POST(request: Request) {
       );
     }
 
-    const { name, email, phone, role, assignedGreenhouses } = parsed.data;
+    const { name, email, phone, role, password, assignedGreenhouses } =
+      parsed.data;
 
     if (actorRole === Role.FARM_MANAGER && role === Role.FARM_MANAGER) {
       return NextResponse.json(
@@ -100,25 +127,33 @@ export async function POST(request: Request) {
     }
 
     const uniqueGreenhouses = Array.from(new Set(assignedGreenhouses));
-    const [userCode, placeholderPasswordHash] = await Promise.all([
+    const rawInitialPassword = password ?? generateRawToken(32);
+    const [userCode, passwordHash] = await Promise.all([
       getNextStaffCode(),
-      bcrypt.hash(generateRawToken(32), 12),
+      bcrypt.hash(rawInitialPassword, 12),
     ]);
 
-    const now = new Date();
+    const rawVerificationToken = generateRawToken();
+    const verificationTokenHash = hashToken(rawVerificationToken);
+    const verificationTokenExpiry = new Date(
+      Date.now() + STAFF_VERIFICATION_TTL_MS
+    );
+
     const user = await prisma.user.create({
       data: {
         userCode,
         name,
         email,
         phone: normalizedPhone,
-        passwordHash: placeholderPasswordHash,
+        passwordHash,
         role,
-        accountStatus: AccountStatus.ACTIVE,
-        isActive: true,
-        emailVerified: true,
-        emailVerifiedAt: now,
+        accountStatus: AccountStatus.PENDING,
+        isActive: false,
+        emailVerified: false,
+        emailVerifiedAt: null,
         assignedGreenhouses: uniqueGreenhouses,
+        verificationTokenHash,
+        verificationTokenExpiry,
       },
       select: {
         id: true,
@@ -126,22 +161,14 @@ export async function POST(request: Request) {
         name: true,
         email: true,
         phone: true,
+        businessName: true,
         role: true,
         accountStatus: true,
         isActive: true,
+        emailVerified: true,
         assignedGreenhouses: true,
-      },
-    });
-
-    const rawSetupToken = generateRawToken();
-    const tokenHash = hashToken(rawSetupToken);
-    const expiresAt = new Date(Date.now() + STAFF_SETUP_TTL_MS);
-
-    await prisma.passwordResetToken.create({
-      data: {
-        email: user.email,
-        tokenHash,
-        expiresAt,
+        lastLoginAt: true,
+        createdAt: true,
       },
     });
 
@@ -162,13 +189,23 @@ export async function POST(request: Request) {
       },
     });
 
-    await sendPasswordResetEmail(user.email, rawSetupToken, user.name);
+    await sendStaffWelcomeEmail(user.email, rawVerificationToken, {
+      name: user.name,
+      userCode: user.userCode,
+      role: user.role,
+      assignedGreenhouses: user.assignedGreenhouses,
+    });
 
     return NextResponse.json(
       {
-        message:
-          "Staff account created and password-setup email sent.",
-        user,
+        message: "Staff account created and verification email sent.",
+        user: {
+          ...user,
+          lastLoginAt: user.lastLoginAt
+            ? user.lastLoginAt.toISOString()
+            : null,
+          createdAt: user.createdAt.toISOString(),
+        },
       },
       { status: 201 }
     );

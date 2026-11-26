@@ -11,13 +11,13 @@ interface AuthShellProps {
 
 export function AuthShell({ title, subtitle, children, footer }: AuthShellProps) {
   return (
-    <div className="min-h-screen w-full overflow-x-hidden bg-gradient-to-b from-emerald-50 via-white to-emerald-50/70 flex flex-col">
-      <header className="w-full border-b border-emerald-100/80 bg-white/80 backdrop-blur-sm">
+    <div className="min-h-screen w-full overflow-x-hidden bg-slate-50 flex flex-col">
+      <header className="w-full border-b border-slate-200/80 bg-white/95 backdrop-blur-sm">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
           <BrandLogo />
           <Link
             href="/"
-            className="inline-flex min-h-[44px] items-center rounded-lg px-3 text-sm font-medium text-emerald-700 hover:bg-emerald-50 transition-colors"
+            className="inline-flex min-h-[44px] items-center rounded-xl px-3 text-sm font-medium text-emerald-700 hover:bg-emerald-50 transition-colors"
           >
             Back to Home
           </Link>
@@ -26,7 +26,7 @@ export function AuthShell({ title, subtitle, children, footer }: AuthShellProps)
 
       <main className="flex flex-1 items-center justify-center px-4 py-8 sm:px-6 lg:px-8">
         <div className="w-full max-w-md">
-          <div className="rounded-2xl border border-emerald-100 bg-white p-6 shadow-xl shadow-emerald-950/5 sm:p-8">
+          <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm sm:p-8">
             <div className="mb-6">
               <h1 className="text-2xl font-bold tracking-tight text-slate-900">
                 {title}
