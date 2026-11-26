@@ -1,0 +1,85 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  OWNER_ADMIN
+  FARM_MANAGER
+  AGRONOMIST
+  GREENHOUSE_TECH
+  BUYER
+}
+
+enum AccountStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+  INACTIVE
+}
+
+enum AuthEventType {
+  LOGIN_SUCCESS
+  LOGIN_FAILED
+  LOGOUT
+  SIGNUP
+  EMAIL_VERIFIED
+  PASSWORD_RESET_REQUESTED
+  PASSWORD_RESET_COMPLETED
+  STATUS_CHANGED
+  ROLE_ACCESS_UPDATED
+}
+
+model User {
+  id                      String         @id @default(auto()) @map("_id") @db.ObjectId
+  userCode                String         @unique
+  name                    String
+  email                   String         @unique
+  phone                   String?
+  businessName            String?
+  passwordHash            String
+  role                    Role           @default(BUYER)
+  accountStatus           AccountStatus  @default(PENDING)
+  isActive                Boolean        @default(false)
+  emailVerified           Boolean        @default(false)
+  emailVerifiedAt         DateTime?
+  assignedGreenhouses     String[]       @default([])
+  verificationTokenHash   String?
+  verificationTokenExpiry DateTime?
+  failedLoginAttempts     Int            @default(0)
+  lockedUntil             DateTime?
+  lastLoginAt             DateTime?
+  createdAt               DateTime       @default(now())
+  updatedAt               DateTime       @updatedAt
+  auditLogs               AuthAuditLog[]
+}
+
+model PasswordResetToken {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  email     String
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([email])
+}
+
+model AuthAuditLog {
+  id        String        @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String?       @db.ObjectId
+  user      User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  email     String
+  event     AuthEventType
+  ipAddress String?
+  userAgent String?
+  metadata  Json?
+  createdAt DateTime      @default(now())
+
+  @@index([userId])
+  @@index([email])
+  @@index([createdAt])
+}
